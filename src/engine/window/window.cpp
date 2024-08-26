@@ -1,7 +1,7 @@
 #include "window.hpp"
 
 namespace engine {
-  window::window(int width, int height, std::string name): width(width), height(height), name(name) {
+  window::window(uint32_t width, uint32_t height, std::string name): width(width), height(height), name(name) {
     init();
   }
 
@@ -12,9 +12,7 @@ namespace engine {
 
   void window::init() {
     if (!glfwInit()) {
-        fprintf(stderr, "Error: There was an error trying to initialize GLFW\n");
-
-        return;
+        throw std::runtime_error("There was an error trying to initialize GLFW");
     }
     
     /* Disable OpenGL context */
@@ -24,7 +22,7 @@ namespace engine {
 
     instance = glfwCreateWindow(width, height, name.c_str(), nullptr, nullptr);
 
-    /** Register ESC button to close the window */
+    /* Register ESC button to close the window */
     glfwSetKeyCallback(instance, closeWindowWithEscapeCallback);
   }
 

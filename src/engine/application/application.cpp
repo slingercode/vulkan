@@ -1,7 +1,7 @@
 #include "application.hpp"
 
-namespace application {
-    void main::run() {
+namespace engine {
+    void application::run() {
         while (!window.shouldClose()) {
             glfwPollEvents();
         }
