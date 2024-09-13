@@ -1,7 +1,11 @@
 #include "application.hpp"
 
-namespace engine {
-    void application::run() {
+namespace Engine {
+    Application::Application(Engine::Window::Configuration windowConfiguration) : window(windowConfiguration) {
+        Engine::Vulkan();
+    }
+
+    void Application::run() {
         while (!window.shouldClose()) {
             glfwPollEvents();
         }

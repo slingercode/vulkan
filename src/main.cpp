@@ -1,11 +1,17 @@
 #include "application.hpp"
 
-#include "cstdlib"
-#include "iostream"
-#include "stdexcept"
+#include <cstdlib>
+#include <iostream>
+#include <stdexcept>
+
+static const Engine::Window::Configuration windowConfiguration = {
+    800,
+    600,
+    "Vulkan"
+};
 
 int main() {
-    engine::application app;
+    Engine::Application app(windowConfiguration);
 
     try {
         app.run();

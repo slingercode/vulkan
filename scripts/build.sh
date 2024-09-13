@@ -2,6 +2,9 @@
 
 mkdir -p build && cd build
 
-cmake ..
+cmake -DCMAKE_BUILD_TYPE=debug ..
+cmake --build . --target debug
 
-make
+# Release mode
+# cmake -DCMAKE_BUILD_TYPE=release ..
+# cmake --build . --target release

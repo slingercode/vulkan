@@ -2,29 +2,35 @@
 
 #define GLFW_INCLUDE_VULKAN
 
-#include "GLFW/glfw3.h"
+#include <GLFW/glfw3.h>
 
-#include "string"
+#include <string>
 
-namespace engine {
-  class window {
-    private:
-        GLFWwindow* instance = nullptr;
-        uint32_t width = 0;
-        uint32_t height = 0;
-        std::string name = "";
+namespace Engine {
+    class Window {
+        public:
+            struct Configuration {
+                uint32_t width;
+                uint32_t height;
+                std::string name;
+                
+                Configuration(uint32_t width, uint32_t height, const std::string& name) : width(width), height(height), name(name) {}
+            };
 
-        void init();
+            Window(Configuration configuration);
+            ~Window();
+            
+            Window(const Window &) = delete;
+            Window &operator=(const Window &) = delete;
 
-        static void closeWindowWithEscapeCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
+            bool shouldClose();
 
-    public:
-        window(uint32_t width, uint32_t height, std::string name);
-        ~window();
-        
-        window(const window &) = delete;
-        window &operator=(const window &) = delete;
+        private:
+            GLFWwindow* window = nullptr;
+            Configuration configuration;
 
-        bool shouldClose();
-  };
+            void init();
+
+            static void onEscapePress(GLFWwindow* window, int key, int scancode, int action, int mods);
+    };
 }
