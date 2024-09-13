@@ -29,13 +29,16 @@ namespace Engine {
                 const bool enableValidationLayers = true;
             #endif
 
-            void init();
+            void createInstance();
 
             bool checkValidationLayerSupport();
 
             std::vector<const char*> getRequiredExtensions();
 
-            // Message callback
+            // -----------------------------
+            // ---------- DEBUGGER ---------
+            // -----------------------------
+
             void setupDebugMessenger();
 
             void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
