@@ -4,6 +4,8 @@
 #include <vulkan/vulkan.h>
 
 #include <vector>
+#include <iostream>
+#include <optional>
 
 namespace Engine {
     class Vulkan {
@@ -15,8 +17,16 @@ namespace Engine {
             Vulkan &operator=(const Vulkan &) = delete;
 
         private:
+            struct QueueFamilyIndices {
+                std::optional<uint32_t> graphicsFamily;
+
+                bool isComplete() {
+                    return graphicsFamily.has_value();
+                }
+            };
+
             VkInstance instance = nullptr;
-            VkDebugUtilsMessengerEXT debugMessenger;
+            VkPhysicalDevice physicalDevice = nullptr;
 
             static constexpr const char* APP_NAME = "Engine";
             static constexpr const char* ENGINE_NAME = "No Engine";
@@ -36,8 +46,24 @@ namespace Engine {
             std::vector<const char*> getRequiredExtensions();
 
             // -----------------------------
+            // ------ PHYSICAL DEVICE ------
+            // -----------------------------
+
+            void pickPhysicalDevice();
+
+            bool isDeviceSuitable(VkPhysicalDevice device);
+
+            // -----------------------------
+            // ----------- QUEUE -----------
+            // -----------------------------
+
+            QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
+
+            // -----------------------------
             // ---------- DEBUGGER ---------
             // -----------------------------
+
+            VkDebugUtilsMessengerEXT debugMessenger;
 
             void setupDebugMessenger();
 

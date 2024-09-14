@@ -1,11 +1,10 @@
 #include "vulkan.hpp"
 
-#include <iostream>
-
 namespace Engine {
     Vulkan::Vulkan() {
         createInstance();
         setupDebugMessenger();
+        pickPhysicalDevice();
     }
 
     Vulkan::~Vulkan() {
@@ -102,6 +101,85 @@ namespace Engine {
         }
 
         return requiredExtensions;
+    }
+
+    // -----------------------------
+    // ------ PHYSICAL DEVICE ------
+    // -----------------------------
+
+    void Vulkan::pickPhysicalDevice() {
+        uint32_t deviceCount = 0;
+        vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
+
+        if (deviceCount == 0) {
+            throw std::runtime_error("Failed to find a GPU with Vulkan support");
+        }
+
+        std::vector<VkPhysicalDevice> devices(deviceCount);
+        vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
+
+        for (const VkPhysicalDevice device : devices) {
+            if (isDeviceSuitable(device)) {
+                physicalDevice = device;
+
+                break;
+            }
+        }
+
+        if (physicalDevice == nullptr) {
+            throw std::runtime_error("Failed to find a GPU to work with");
+        }
+    }
+
+    bool Vulkan::isDeviceSuitable(VkPhysicalDevice device) {
+        VkPhysicalDeviceFeatures deviceFeatures;
+        VkPhysicalDeviceProperties deviceProperties;
+
+        vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
+        vkGetPhysicalDeviceProperties(device, &deviceProperties);
+
+        /**
+         * According to the Vulkan tutorial, there is a validation needed in order to know if the GPU
+         * has the feature of geometryShader, however, in the M lineup of macbooks, there is no support for it?
+         * 
+         * So for now im just returning true
+         */
+        // return deviceFeatures.geometryShader;
+
+        std::cout << "GPU: " << deviceProperties.deviceName << "\n";
+
+        QueueFamilyIndices indices = findQueueFamilies(device);
+
+        return indices.isComplete();
+    }
+
+    // -----------------------------
+    // ----------- QUEUE -----------
+    // -----------------------------
+
+    Engine::Vulkan::QueueFamilyIndices Vulkan::findQueueFamilies(VkPhysicalDevice device) {
+        QueueFamilyIndices indices;
+
+        uint32_t queueFamilyCount = 0;
+        vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
+
+        std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+        vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
+
+        int i = 0;
+        for (const VkQueueFamilyProperties queueFamily : queueFamilies) {
+            if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+                indices.graphicsFamily = i;
+            }
+
+            if (indices.isComplete()) {
+                break;
+            }
+
+            i++;
+        }
+
+        return indices;
     }
 
     // -----------------------------
