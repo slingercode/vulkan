@@ -25,13 +25,22 @@ namespace Engine {
                 }
             };
 
+            VkDevice device = nullptr;
             VkInstance instance = nullptr;
+            /// @note This object is automatically destroyed when `device (VkInstance)` is destroyed
+            VkQueue graphicsQueue = nullptr;
+            /// @note This object is automatically destroyed when `instance (VkDevice)` is destroyed
             VkPhysicalDevice physicalDevice = nullptr;
 
             static constexpr const char* APP_NAME = "Engine";
             static constexpr const char* ENGINE_NAME = "No Engine";
+            /// @note This device extension is required at least in Apple M lineups
+            static constexpr const char* PHYSICAL_DEVICE_PROPERTIES_2 = VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME;
             
             const std::vector<const char*> validationLayers = { "VK_LAYER_KHRONOS_validation" };
+
+            /// @note This device extensions are required at least in Apple M lineups
+            const std::vector<const char*> deviceExtensions = { "VK_KHR_portability_subset" };
 
             #ifdef NDEBUG
                 const bool enableValidationLayers = false;
@@ -43,25 +52,23 @@ namespace Engine {
 
             bool checkValidationLayerSupport();
 
-            std::vector<const char*> getRequiredExtensions();
+            std::vector<const char*> getInstanceRequiredExtensions();
 
-            // -----------------------------
-            // ------ PHYSICAL DEVICE ------
-            // -----------------------------
+            // PHYSICAL DEVICE
 
             void pickPhysicalDevice();
 
             bool isDeviceSuitable(VkPhysicalDevice device);
 
-            // -----------------------------
-            // ----------- QUEUE -----------
-            // -----------------------------
+            // QUEUE
 
             QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
 
-            // -----------------------------
-            // ---------- DEBUGGER ---------
-            // -----------------------------
+            // LOGICAL DEVICE
+
+            void createLogicalDevice();
+
+            // DEBUGGER
 
             VkDebugUtilsMessengerEXT debugMessenger;
 
@@ -69,8 +76,8 @@ namespace Engine {
 
             void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
 
-            VkResult createDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger);
+            VkResult createDebugUtilsMessenger(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger);
 
-            void destroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator);
+            void destroyDebugUtilsMessenger(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator);
     };
 }

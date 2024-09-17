@@ -5,11 +5,16 @@ namespace Engine {
         createInstance();
         setupDebugMessenger();
         pickPhysicalDevice();
+        createLogicalDevice();
     }
 
     Vulkan::~Vulkan() {
+        if (device != nullptr) {
+            vkDestroyDevice(device, nullptr);
+        }
+
         if (enableValidationLayers && instance != nullptr && debugMessenger != nullptr) {
-            destroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
+            destroyDebugUtilsMessenger(instance, debugMessenger, nullptr);
         }
 
         if (instance != nullptr) {
@@ -30,13 +35,13 @@ namespace Engine {
         appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
         appInfo.apiVersion = VK_API_VERSION_1_0;
 
-        std::vector<const char*> requiredExtensions = getRequiredExtensions();
+        std::vector<const char*> requiredExtensions = getInstanceRequiredExtensions();
 
         VkInstanceCreateInfo createInfo = {};
         createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
         createInfo.pApplicationInfo = &appInfo;
         createInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
-        createInfo.enabledExtensionCount = (uint32_t) requiredExtensions.size();
+        createInfo.enabledExtensionCount = static_cast<uint32_t>(requiredExtensions.size());
         createInfo.ppEnabledExtensionNames = requiredExtensions.data();
 
         VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
@@ -46,7 +51,7 @@ namespace Engine {
             createInfo.ppEnabledLayerNames = validationLayers.data();
 
             populateDebugMessengerCreateInfo(debugCreateInfo);
-            createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*) &debugCreateInfo;
+            createInfo.pNext = static_cast<VkDebugUtilsMessengerCreateInfoEXT*>(&debugCreateInfo);
         } else {
             createInfo.enabledLayerCount = 0;
             createInfo.pNext = nullptr;
@@ -55,7 +60,7 @@ namespace Engine {
         const VkResult instanceResult = vkCreateInstance(&createInfo, nullptr, &instance);
 
         if (instanceResult != VK_SUCCESS) {
-            const std::string msg = "Failed to create Vulkan instance! [CODE]: " + std::to_string(instanceResult);
+            const std::string msg = "Failed to create a Vulkan instance. [CODE]: " + std::to_string(instanceResult);
             throw std::runtime_error(msg);
         }
     }
@@ -85,7 +90,7 @@ namespace Engine {
         return true;
     }
 
-    std::vector<const char*> Vulkan::getRequiredExtensions() {
+    std::vector<const char*> Vulkan::getInstanceRequiredExtensions() {
         uint32_t glfwExtensionCount = 0;
         std::vector<const char*> requiredExtensions;
         const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
@@ -94,6 +99,7 @@ namespace Engine {
             requiredExtensions.emplace_back(glfwExtensions[i]);
         }
         
+        requiredExtensions.emplace_back(PHYSICAL_DEVICE_PROPERTIES_2);
         requiredExtensions.emplace_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
 
         if (enableValidationLayers) {
@@ -103,9 +109,7 @@ namespace Engine {
         return requiredExtensions;
     }
 
-    // -----------------------------
-    // ------ PHYSICAL DEVICE ------
-    // -----------------------------
+    // PHYSICAL DEVICE
 
     void Vulkan::pickPhysicalDevice() {
         uint32_t deviceCount = 0;
@@ -141,21 +145,18 @@ namespace Engine {
         /**
          * According to the Vulkan tutorial, there is a validation needed in order to know if the GPU
          * has the feature of geometryShader, however, in the M lineup of macbooks, there is no support for it?
-         * 
-         * So for now im just returning true
          */
         // return deviceFeatures.geometryShader;
 
-        std::cout << "GPU: " << deviceProperties.deviceName << "\n";
+        // TODO: Create a device logger
+        std::cout << "\nGPU: " << deviceProperties.deviceName << "\n\n";
 
         QueueFamilyIndices indices = findQueueFamilies(device);
 
         return indices.isComplete();
     }
 
-    // -----------------------------
-    // ----------- QUEUE -----------
-    // -----------------------------
+    // QUEUE
 
     Engine::Vulkan::QueueFamilyIndices Vulkan::findQueueFamilies(VkPhysicalDevice device) {
         QueueFamilyIndices indices;
@@ -182,22 +183,56 @@ namespace Engine {
         return indices;
     }
 
-    // -----------------------------
-    // ---------- DEBUGGER ---------
-    // -----------------------------
+    // LOGICAL DEVICE
 
-    static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
-        VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-        VkDebugUtilsMessageTypeFlagsEXT messageType,
-        const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-        void* pUserData
-    ) {
+    void Vulkan::createLogicalDevice() {
+        QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
+        const float queuePriority = 1.0f;
+
+        VkDeviceQueueCreateInfo queueCreateInfo{};
+        queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        queueCreateInfo.queueFamilyIndex = indices.graphicsFamily.value();
+        queueCreateInfo.queueCount = 1;
+        queueCreateInfo.pQueuePriorities = &queuePriority;
+
+        VkPhysicalDeviceFeatures deviceFeatures{};
+
+        VkDeviceCreateInfo deviceCreateInfo{};
+        deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+        deviceCreateInfo.queueCreateInfoCount = 1;
+        deviceCreateInfo.pQueueCreateInfos = &queueCreateInfo;
+        deviceCreateInfo.pEnabledFeatures = &deviceFeatures;
+        deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
+        deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions.data();
+
+        if (enableValidationLayers) {
+            deviceCreateInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
+            deviceCreateInfo.ppEnabledLayerNames = validationLayers.data();
+        } else {
+            deviceCreateInfo.enabledLayerCount = 0;
+            deviceCreateInfo.pNext = nullptr;
+        }
+
+        const VkResult deviceInstanceResult = vkCreateDevice(physicalDevice, &deviceCreateInfo, nullptr, &device);
+
+        if (deviceInstanceResult != VK_SUCCESS) {
+            const std::string msg = "Failed to create a Vulkan device. [CODE]: " + std::to_string(deviceInstanceResult);
+            throw std::runtime_error(msg);
+        }
+
+        vkGetDeviceQueue(device, indices.graphicsFamily.value(), 0, &graphicsQueue);
+    }
+
+    // DEBUGGER
+    // The best boilerplate code in this file
+
+    static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData) {
         /* Unused parameters */
         (void)messageSeverity;
         (void)messageType;
         (void)pUserData;
     
-        std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
+        std::cerr << pCallbackData->pMessage << '\n';
 
         return VK_FALSE;
     }
@@ -210,8 +245,11 @@ namespace Engine {
         VkDebugUtilsMessengerCreateInfoEXT createInfo;
         populateDebugMessengerCreateInfo(createInfo);
 
-        if (createDebugUtilsMessengerEXT(instance, &createInfo, nullptr, &debugMessenger) != VK_SUCCESS) {
-            throw std::runtime_error("failed to set up debug messenger!");
+        const VkResult debugInstanceResult = createDebugUtilsMessenger(instance, &createInfo, nullptr, &debugMessenger);
+
+        if (debugInstanceResult != VK_SUCCESS) {
+            const std::string msg = "Failed to set up debug messenger. [CODE]: " + std::to_string(debugInstanceResult);
+            throw std::runtime_error(msg);
         }
     }
 
@@ -223,7 +261,7 @@ namespace Engine {
         createInfo.pfnUserCallback = debugCallback;
     }
 
-    VkResult Vulkan::createDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) {
+    VkResult Vulkan::createDebugUtilsMessenger(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) {
         auto func = (PFN_vkCreateDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
         if (func != nullptr) {
             return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
@@ -232,7 +270,7 @@ namespace Engine {
         }
     }
 
-    void Vulkan::destroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator) {
+    void Vulkan::destroyDebugUtilsMessenger(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator) {
         auto func = (PFN_vkDestroyDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
         if (func != nullptr) {
             func(instance, debugMessenger, pAllocator);

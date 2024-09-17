@@ -18,9 +18,9 @@ namespace Engine {
             throw std::runtime_error("There was an error trying to initialize GLFW");
         }
         
-        /* Disable OpenGL context */
+        // Disable OpenGL context
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-        /* Disable window resizing */
+        // Disable window resizing
         glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
         window = glfwCreateWindow(
@@ -35,7 +35,6 @@ namespace Engine {
             throw std::runtime_error("There was an error trying to initialize the GLFW window context");
         }
 
-        /* Register ESC button to close the window */
         glfwSetKeyCallback(window, onEscapePress);
     }
 
