@@ -40,9 +40,10 @@ namespace Engine {
                 const bool enableValidationLayers = true;
             #endif
 
-            std::vector<VkImage> swapChainImages;
-            VkFormat swapChainImageFormat;
             VkExtent2D swapChainExtent;
+            VkFormat swapChainImageFormat;
+            std::vector<VkImage> swapChainImages;
+            std::vector<VkImageView> swapChainImageViews;
 
             /// @brief Reference to the application window
             Engine::Window* window = nullptr;
@@ -107,6 +108,10 @@ namespace Engine {
             VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
 
             VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
+
+            // Images
+
+            void createImageViews();
 
             // DEBUGGER
 
