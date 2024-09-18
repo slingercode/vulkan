@@ -14,6 +14,10 @@ namespace Engine {
     }
 
     Vulkan::~Vulkan() {
+        if (device != nullptr && graphicsPipeline != nullptr) {
+            vkDestroyPipeline(device, graphicsPipeline, nullptr);
+        }
+
         if (device != nullptr && pipelineLayout != nullptr) {
             vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
         }
@@ -493,8 +497,8 @@ namespace Engine {
     /// @brief The compiled shaders are relative to the `build` folder, so the executable is in build and the
     /// shaders are located at the same level
     void Vulkan::createGraphicsPipeline() {
-        auto vertShaderCode = readFile("vert.spv");
-        auto fragShaderCode = readFile("frag.spv");
+        auto vertShaderCode = readFile(BASE_VERTEX_SHADER);
+        auto fragShaderCode = readFile(BASE_FRAGMENT_SHADER);
 
         VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
         VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);
@@ -503,13 +507,13 @@ namespace Engine {
         vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
         vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
         vertShaderStageInfo.module = vertShaderModule;
-        vertShaderStageInfo.pName = "main";
+        vertShaderStageInfo.pName = SHADER_MAIN_FUNCTION;
 
         VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
         fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
         fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
         fragShaderStageInfo.module = fragShaderModule;
-        fragShaderStageInfo.pName = "main";
+        fragShaderStageInfo.pName = SHADER_MAIN_FUNCTION;
 
         VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
 
@@ -561,6 +565,17 @@ namespace Engine {
         colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
         colorBlendAttachment.blendEnable = VK_FALSE;
 
+        VkPipelineColorBlendStateCreateInfo colorBlending{};
+        colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+        colorBlending.logicOpEnable = VK_FALSE;
+        colorBlending.logicOp = VK_LOGIC_OP_COPY;
+        colorBlending.attachmentCount = 1;
+        colorBlending.pAttachments = &colorBlendAttachment;
+        colorBlending.blendConstants[0] = 0.0f;
+        colorBlending.blendConstants[1] = 0.0f;
+        colorBlending.blendConstants[2] = 0.0f;
+        colorBlending.blendConstants[3] = 0.0f;
+
         // Dynamic state
 
         std::vector<VkDynamicState> dynamicStates = {
@@ -584,6 +599,30 @@ namespace Engine {
 
         if (pipelineLayoutInstanceResult != VK_SUCCESS) {
             const std::string msg = "Failed to create a Vulkan pipeline layout. [CODE]: " + std::to_string(pipelineLayoutInstanceResult);
+            throw std::runtime_error(msg);
+        }
+
+        VkGraphicsPipelineCreateInfo pipelineInfo{};
+        pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+        pipelineInfo.stageCount = 2;
+        pipelineInfo.pStages = shaderStages;
+        pipelineInfo.pVertexInputState = &vertexInputInfo;
+        pipelineInfo.pInputAssemblyState = &inputAssembly;
+        pipelineInfo.pViewportState = &viewportState;
+        pipelineInfo.pRasterizationState = &rasterizer;
+        pipelineInfo.pMultisampleState = &multisampling;
+        pipelineInfo.pColorBlendState = &colorBlending;
+        pipelineInfo.pDynamicState = &dynamicState;
+        pipelineInfo.layout = pipelineLayout;
+        pipelineInfo.renderPass = renderPass;
+        pipelineInfo.subpass = 0;
+        pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
+        pipelineInfo.basePipelineIndex = -1;
+
+        VkResult pipelineInstanceResult = vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline);
+
+        if (pipelineInstanceResult != VK_SUCCESS) {
+            const std::string msg = "Failed to create a Vulkan graphics pipeline. [CODE]: " + std::to_string(pipelineInstanceResult);
             throw std::runtime_error(msg);
         }
 

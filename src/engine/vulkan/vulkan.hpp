@@ -55,6 +55,7 @@ namespace Engine {
             VkSurfaceKHR surface = nullptr;
             VkRenderPass renderPass = nullptr;
             VkSwapchainKHR swapChain = nullptr;
+            VkPipeline graphicsPipeline = nullptr;
             VkPipelineLayout pipelineLayout = nullptr;
             /// @note This object is automatically destroyed when `device (VkInstance)` is destroyed
             VkQueue graphicsQueue = nullptr;
@@ -63,6 +64,9 @@ namespace Engine {
 
             static constexpr const char* APP_NAME = "Engine";
             static constexpr const char* ENGINE_NAME = "No Engine";
+            static constexpr const char* SHADER_MAIN_FUNCTION = "main";
+            static constexpr const char* BASE_VERTEX_SHADER = "./shaders/vert.spv";
+            static constexpr const char* BASE_FRAGMENT_SHADER = "./shaders/frag.spv";
             /// @note This device extension is required at least in Apple M lineups
             static constexpr const char* PHYSICAL_DEVICE_PROPERTIES_2 = VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME;
 
@@ -128,7 +132,7 @@ namespace Engine {
                 std::ifstream file(filename, std::ios::ate | std::ios::binary);
 
                 if (!file.is_open()) {
-                    throw std::runtime_error("failed to open file!");
+                    throw std::runtime_error("Failed to open the file: " + filename);
                 }
 
                 size_t fileSize = (size_t) file.tellg();
