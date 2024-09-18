@@ -28,11 +28,21 @@ namespace Engine {
                 }
             };
 
+            struct SwapChainSupportDetails {
+                VkSurfaceCapabilitiesKHR capabilities;
+                std::vector<VkSurfaceFormatKHR> formats;
+                std::vector<VkPresentModeKHR> presentModes;
+            };
+
             #ifdef NDEBUG
                 const bool enableValidationLayers = false;
             #else
                 const bool enableValidationLayers = true;
             #endif
+
+            std::vector<VkImage> swapChainImages;
+            VkFormat swapChainImageFormat;
+            VkExtent2D swapChainExtent;
 
             /// @brief Reference to the application window
             Engine::Window* window = nullptr;
@@ -41,6 +51,7 @@ namespace Engine {
             VkInstance instance = nullptr;
             VkQueue presentQueue = nullptr;
             VkSurfaceKHR surface = nullptr;
+            VkSwapchainKHR swapChain = nullptr;
             /// @note This object is automatically destroyed when `device (VkInstance)` is destroyed
             VkQueue graphicsQueue = nullptr;
             /// @note This object is automatically destroyed when `instance (VkDevice)` is destroyed
@@ -54,7 +65,10 @@ namespace Engine {
             const std::vector<const char*> validationLayers = { "VK_LAYER_KHRONOS_validation" };
 
             /// @note This device extensions are required at least in Apple M lineups
-            const std::vector<const char*> deviceExtensions = { "VK_KHR_portability_subset" };
+            const std::vector<const char*> deviceExtensions = {
+                "VK_KHR_portability_subset",
+                VK_KHR_SWAPCHAIN_EXTENSION_NAME
+            };
 
             void createInstance();
 
@@ -72,6 +86,8 @@ namespace Engine {
 
             bool isDeviceSuitable(VkPhysicalDevice device);
 
+            bool checkDeviceExtensionSupport(VkPhysicalDevice device);
+
             // QUEUE
 
             QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
@@ -79,6 +95,18 @@ namespace Engine {
             // LOGICAL DEVICE
 
             void createLogicalDevice();
+
+            // SWAP CHAIN
+
+            void createSwapChain();
+
+            SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
+
+            VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
+
+            VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
+
+            VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
 
             // DEBUGGER
 
