@@ -3,8 +3,6 @@
 #include "window.hpp"
 #include "vulkan.hpp"
 
-#include <iostream>
-
 namespace Engine {
     class Application {
         public:
@@ -14,6 +12,6 @@ namespace Engine {
 
         private:
             Window window;
-            Vulkan vulkan{};
+            Vulkan vulkan{&window};
     };
 }

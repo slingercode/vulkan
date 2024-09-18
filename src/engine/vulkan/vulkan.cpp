@@ -1,14 +1,19 @@
 #include "vulkan.hpp"
 
 namespace Engine {
-    Vulkan::Vulkan() {
+    Vulkan::Vulkan(Engine::Window* window): window(window) {
         createInstance();
         setupDebugMessenger();
+        createSurface();
         pickPhysicalDevice();
         createLogicalDevice();
     }
 
     Vulkan::~Vulkan() {
+        if (surface != nullptr) {
+            vkDestroySurfaceKHR(instance, surface, nullptr);
+        }
+
         if (device != nullptr) {
             vkDestroyDevice(device, nullptr);
         }
@@ -68,10 +73,10 @@ namespace Engine {
     bool Vulkan::checkValidationLayerSupport() {
         uint32_t layerCount;
         vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
-        
+
         std::vector<VkLayerProperties> availableLayers(layerCount);
         vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
-        
+
         for (const char* layerName : validationLayers) {
             bool layerFound = false;
 
@@ -98,7 +103,7 @@ namespace Engine {
         for (uint32_t i = 0; i < glfwExtensionCount; i++) {
             requiredExtensions.emplace_back(glfwExtensions[i]);
         }
-        
+
         requiredExtensions.emplace_back(PHYSICAL_DEVICE_PROPERTIES_2);
         requiredExtensions.emplace_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
 
@@ -107,6 +112,17 @@ namespace Engine {
         }
 
         return requiredExtensions;
+    }
+
+    // SURFACE
+
+    void Vulkan::createSurface() {
+        VkResult surfaceInstanceResult = glfwCreateWindowSurface(instance, window->window, nullptr, &surface);
+
+        if (surfaceInstanceResult != VK_SUCCESS) {
+            const std::string msg = "Failed to create a Vulkan surface instance. [CODE]: " + std::to_string(surfaceInstanceResult);
+            throw std::runtime_error(msg);
+        }
     }
 
     // PHYSICAL DEVICE
@@ -173,6 +189,13 @@ namespace Engine {
                 indices.graphicsFamily = i;
             }
 
+            VkBool32 presentSupport = false;
+            vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
+
+            if (presentSupport) {
+                indices.presentFamily = i;
+            }
+
             if (indices.isComplete()) {
                 break;
             }
@@ -187,20 +210,28 @@ namespace Engine {
 
     void Vulkan::createLogicalDevice() {
         QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
+
+        std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
+        std::set<uint32_t> uniqueQueueFamilies = {indices.graphicsFamily.value(), indices.presentFamily.value()};
+
         const float queuePriority = 1.0f;
 
-        VkDeviceQueueCreateInfo queueCreateInfo{};
-        queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-        queueCreateInfo.queueFamilyIndex = indices.graphicsFamily.value();
-        queueCreateInfo.queueCount = 1;
-        queueCreateInfo.pQueuePriorities = &queuePriority;
+        for (uint32_t queueFamily : uniqueQueueFamilies) {
+            VkDeviceQueueCreateInfo queueCreateInfo{};
+            queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+            queueCreateInfo.queueFamilyIndex = queueFamily;
+            queueCreateInfo.queueCount = 1;
+            queueCreateInfo.pQueuePriorities = &queuePriority;
+
+             queueCreateInfos.push_back(queueCreateInfo);
+        }
 
         VkPhysicalDeviceFeatures deviceFeatures{};
 
         VkDeviceCreateInfo deviceCreateInfo{};
         deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-        deviceCreateInfo.queueCreateInfoCount = 1;
-        deviceCreateInfo.pQueueCreateInfos = &queueCreateInfo;
+        deviceCreateInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
+        deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
         deviceCreateInfo.pEnabledFeatures = &deviceFeatures;
         deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
         deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions.data();
@@ -221,6 +252,7 @@ namespace Engine {
         }
 
         vkGetDeviceQueue(device, indices.graphicsFamily.value(), 0, &graphicsQueue);
+        vkGetDeviceQueue(device, indices.presentFamily.value(), 0, &presentQueue);
     }
 
     // DEBUGGER
@@ -231,7 +263,7 @@ namespace Engine {
         (void)messageSeverity;
         (void)messageType;
         (void)pUserData;
-    
+
         std::cerr << pCallbackData->pMessage << '\n';
 
         return VK_FALSE;

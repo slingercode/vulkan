@@ -17,6 +17,9 @@ namespace Engine {
                 Configuration(uint32_t width, uint32_t height, const std::string& name) : width(width), height(height), name(name) {}
             };
 
+            GLFWwindow* window = nullptr;
+            Configuration configuration;
+
             Window(Configuration configuration);
             ~Window();
             
@@ -26,9 +29,6 @@ namespace Engine {
             bool shouldClose();
 
         private:
-            GLFWwindow* window = nullptr;
-            Configuration configuration;
-
             void init();
 
             static void onEscapePress(GLFWwindow* window, int key, int scancode, int action, int mods);

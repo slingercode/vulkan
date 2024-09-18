@@ -2,7 +2,6 @@
 
 #include <cstdlib>
 #include <iostream>
-#include <stdexcept>
 
 static const Engine::Window::Configuration windowConfiguration = {
     1200,
