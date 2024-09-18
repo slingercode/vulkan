@@ -9,6 +9,7 @@ namespace Engine {
         createLogicalDevice();
         createSwapChain();
         createImageViews();
+        createGraphicsPipeline();
     }
 
     Vulkan::~Vulkan() {
@@ -411,7 +412,7 @@ namespace Engine {
         }
     }
 
-    // Images
+    // IMAGES
 
     void Vulkan::createImageViews() {
         swapChainImageViews.resize(swapChainImages.size());
@@ -441,6 +442,36 @@ namespace Engine {
                 throw std::runtime_error(msg);
             }
         }
+    }
+
+    // GRAPHICS PIPELINE
+
+    /// @brief The compiled shaders are relative to the `build` folder, so the executable is in build and the
+    /// shaders are located at the same level
+    void Vulkan::createGraphicsPipeline() {
+        auto vertShaderCode = readFile("vert.spv");
+        auto fragShaderCode = readFile("frag.spv");
+
+        VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
+        VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);
+
+        VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
+        vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
+        vertShaderStageInfo.module = vertShaderModule;
+        vertShaderStageInfo.pName = "main";
+
+        VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
+        fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+        fragShaderStageInfo.module = fragShaderModule;
+        fragShaderStageInfo.pName = "main";
+
+        VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
+
+        // Cleanup
+        vkDestroyShaderModule(device, vertShaderModule, nullptr);
+        vkDestroyShaderModule(device, fragShaderModule, nullptr);
     }
 
     // DEBUGGER
