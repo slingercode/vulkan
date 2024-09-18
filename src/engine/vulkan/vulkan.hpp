@@ -54,6 +54,7 @@ namespace Engine {
             VkQueue presentQueue = nullptr;
             VkSurfaceKHR surface = nullptr;
             VkSwapchainKHR swapChain = nullptr;
+            VkPipelineLayout pipelineLayout = nullptr;
             /// @note This object is automatically destroyed when `device (VkInstance)` is destroyed
             VkQueue graphicsQueue = nullptr;
             /// @note This object is automatically destroyed when `instance (VkDevice)` is destroyed
