@@ -53,6 +53,7 @@ namespace Engine {
             VkInstance instance = nullptr;
             VkQueue presentQueue = nullptr;
             VkSurfaceKHR surface = nullptr;
+            VkRenderPass renderPass = nullptr;
             VkSwapchainKHR swapChain = nullptr;
             VkPipelineLayout pipelineLayout = nullptr;
             /// @note This object is automatically destroyed when `device (VkInstance)` is destroyed
@@ -116,6 +117,8 @@ namespace Engine {
             void createImageViews();
 
             // GRAPHICS PIPELINE
+
+            void createRenderPass();
 
             void createGraphicsPipeline();
 
