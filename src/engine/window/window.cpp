@@ -20,8 +20,6 @@ namespace Engine {
         
         // Disable OpenGL context
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-        // Disable window resizing
-        glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
         window = glfwCreateWindow(
             configuration.width,
@@ -35,11 +33,22 @@ namespace Engine {
             throw std::runtime_error("There was an error trying to initialize the GLFW window context");
         }
 
+        glfwSetWindowUserPointer(window, this);
+
         glfwSetKeyCallback(window, onEscapePress);
+        glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
     }
 
     bool Window::shouldClose() {
         return glfwWindowShouldClose(window);
+    }
+
+    bool Window::getFramebufferResized() {
+        return framebufferResized;
+    }
+
+    void Window::setFramebufferResized(bool _framebufferResized) {
+        framebufferResized = _framebufferResized;
     }
 
     void Window::onEscapePress(GLFWwindow* _window, int key, int scancode, int action, int mods) {
@@ -49,6 +58,18 @@ namespace Engine {
 
         if (action == GLFW_PRESS && key == GLFW_KEY_ESCAPE) {
             glfwSetWindowShouldClose(_window, GLFW_TRUE);
+        }
+    }
+
+    void Window::framebufferResizeCallback(GLFWwindow* window, int width, int height) {
+        /* Unused parameters */
+        (void)width;
+        (void)height;
+
+        Window* self = static_cast<Window*>(glfwGetWindowUserPointer(window));
+
+        if (self) {
+            self->setFramebufferResized(true);
         }
     }
 }

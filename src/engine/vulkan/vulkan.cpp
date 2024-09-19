@@ -18,6 +18,8 @@ namespace Engine {
     }
 
     Vulkan::~Vulkan() {
+        cleanupSwapChain();
+
         if (device != nullptr) {
             for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
                 vkDestroySemaphore(device, renderFinishedSemaphores[i], nullptr);
@@ -30,12 +32,6 @@ namespace Engine {
             vkDestroyCommandPool(device, commandPool, nullptr);
         }
 
-        if (device != nullptr) {
-            for (VkFramebuffer framebuffer : swapChainFramebuffers) {
-                vkDestroyFramebuffer(device, framebuffer, nullptr);
-            }
-        }
-
         if (device != nullptr && graphicsPipeline != nullptr) {
             vkDestroyPipeline(device, graphicsPipeline, nullptr);
         }
@@ -46,16 +42,6 @@ namespace Engine {
 
         if (device != nullptr && renderPass != nullptr) {
             vkDestroyRenderPass(device, renderPass, nullptr);
-        }
-
-        if (device != nullptr) {
-            for (VkImageView imageView : swapChainImageViews) {
-                vkDestroyImageView(device, imageView, nullptr);
-            }
-        }
-
-        if (device != nullptr && swapChain != nullptr) {
-            vkDestroySwapchainKHR(device, swapChain, nullptr);            
         }
 
         if (surface != nullptr) {
@@ -80,7 +66,19 @@ namespace Engine {
         vkResetFences(device, 1, &inFlightFences[currentFrame]);
 
         uint32_t imageIndex;
-        vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
+        VkResult nextImageResult = vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
+
+        if (nextImageResult == VK_ERROR_OUT_OF_DATE_KHR) {
+            recreateSwapChain();
+
+            return;
+        } else if (nextImageResult != VK_SUCCESS && nextImageResult != VK_SUBOPTIMAL_KHR) {
+            const std::string msg = "failed to acquire swap chain image. [CODE]: " + std::to_string(nextImageResult);
+            throw std::runtime_error(msg);
+        }
+
+        // Only reset the fence if we are submitting work
+        vkResetFences(device, 1, &inFlightFences[currentFrame]);
 
         vkResetCommandBuffer(commandBuffers[currentFrame], 0);
         recordCommandBuffer(commandBuffers[currentFrame], imageIndex);
@@ -119,7 +117,16 @@ namespace Engine {
         presentInfo.pImageIndices = &imageIndex;
         presentInfo.pResults = nullptr;
 
-        vkQueuePresentKHR(presentQueue, &presentInfo);
+        VkResult queueResult = vkQueuePresentKHR(presentQueue, &presentInfo);
+
+        if (queueResult == VK_ERROR_OUT_OF_DATE_KHR || queueResult == VK_SUBOPTIMAL_KHR || window->getFramebufferResized()) {
+            window->setFramebufferResized(false);
+
+            recreateSwapChain();
+        } else if (queueResult != VK_SUCCESS) {
+            const std::string msg = "failed to present swap chain image. [CODE]: " + std::to_string(queueResult);
+            throw std::runtime_error(msg);
+        }
 
         currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
     }
@@ -437,6 +444,43 @@ namespace Engine {
 
         swapChainImageFormat = surfaceFormat.format;
         swapChainExtent = extent;
+    }
+
+    void Vulkan::recreateSwapChain() {
+        int width = 0, height = 0;
+
+        glfwGetFramebufferSize(window->window, &width, &height);
+
+        while (width == 0 || height == 0) {
+            glfwGetFramebufferSize(window->window, &width, &height);
+            glfwWaitEvents();
+        }
+
+        vkDeviceWaitIdle(device);
+
+        cleanupSwapChain();
+
+        createSwapChain();
+        createImageViews();
+        createFramebuffers();
+    }
+
+    void Vulkan::cleanupSwapChain() {
+        if (device != nullptr) {
+            for (VkFramebuffer framebuffer : swapChainFramebuffers) {
+                vkDestroyFramebuffer(device, framebuffer, nullptr);
+            }
+        }
+
+        if (device != nullptr) {
+            for (VkImageView imageView : swapChainImageViews) {
+                vkDestroyImageView(device, imageView, nullptr);
+            }
+        }
+
+        if (device != nullptr && swapChain != nullptr) {
+            vkDestroySwapchainKHR(device, swapChain, nullptr);            
+        }
     }
 
     Vulkan::SwapChainSupportDetails Vulkan::querySwapChainSupport(VkPhysicalDevice device) {

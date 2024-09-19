@@ -28,9 +28,17 @@ namespace Engine {
 
             bool shouldClose();
 
+            bool getFramebufferResized();
+
+            void setFramebufferResized(bool _framebufferResized);
+
         private:
+            bool framebufferResized = false;
+
             void init();
 
             static void onEscapePress(GLFWwindow* window, int key, int scancode, int action, int mods);
+
+            static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
     };
 }

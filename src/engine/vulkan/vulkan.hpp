@@ -125,6 +125,10 @@ namespace Engine {
 
             void createSwapChain();
 
+            void recreateSwapChain();
+
+            void cleanupSwapChain();
+
             SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
 
             VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);

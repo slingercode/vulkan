@@ -1,5 +1,8 @@
 # Vulkan
 
+![Triangle after more than 1000 lines of code](./assets/triangle.png "Triangle")
+
+
 ## References
 
 - [Getting started with the macOS Vulkan SDK](https://vulkan.lunarg.com/doc/view/latest/mac/getting_started.html)
