@@ -45,6 +45,7 @@ namespace Engine {
             VkFormat swapChainImageFormat;
             std::vector<VkImage> swapChainImages;
             std::vector<VkImageView> swapChainImageViews;
+            std::vector<VkFramebuffer> swapChainFramebuffers;
 
             /// @brief Reference to the application window
             Engine::Window* window = nullptr;
@@ -125,6 +126,8 @@ namespace Engine {
             void createRenderPass();
 
             void createGraphicsPipeline();
+
+            void createFramebuffers();
 
             // UTILS
 

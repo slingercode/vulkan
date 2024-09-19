@@ -11,9 +11,16 @@ namespace Engine {
         createImageViews();
         createRenderPass();
         createGraphicsPipeline();
+        createFramebuffers();
     }
 
     Vulkan::~Vulkan() {
+        if (device != nullptr) {
+            for (VkFramebuffer framebuffer : swapChainFramebuffers) {
+                vkDestroyFramebuffer(device, framebuffer, nullptr);
+            }
+        }
+
         if (device != nullptr && graphicsPipeline != nullptr) {
             vkDestroyPipeline(device, graphicsPipeline, nullptr);
         }
@@ -602,6 +609,8 @@ namespace Engine {
             throw std::runtime_error(msg);
         }
 
+        // Pipeline
+
         VkGraphicsPipelineCreateInfo pipelineInfo{};
         pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
         pipelineInfo.stageCount = 2;
@@ -630,6 +639,32 @@ namespace Engine {
 
         vkDestroyShaderModule(device, vertShaderModule, nullptr);
         vkDestroyShaderModule(device, fragShaderModule, nullptr);
+    }
+
+    void Vulkan::createFramebuffers() {
+        swapChainFramebuffers.resize(swapChainImageViews.size());
+
+        for (size_t i = 0; i < swapChainImageViews.size(); i++) {
+            VkImageView attachments[] = {
+                swapChainImageViews[i]
+            };
+
+            VkFramebufferCreateInfo framebufferInfo{};
+            framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+            framebufferInfo.renderPass = renderPass;
+            framebufferInfo.attachmentCount = 1;
+            framebufferInfo.pAttachments = attachments;
+            framebufferInfo.width = swapChainExtent.width;
+            framebufferInfo.height = swapChainExtent.height;
+            framebufferInfo.layers = 1;
+
+            VkResult frameBufferInstanceResult = vkCreateFramebuffer(device, &framebufferInfo, nullptr, &swapChainFramebuffers[i]);
+
+            if (frameBufferInstanceResult != VK_SUCCESS) {
+                const std::string msg = "Failed to create a Vulkan frame buffer. [CODE]: " + std::to_string(frameBufferInstanceResult);
+                throw std::runtime_error(msg);
+            }
+        }
     }
 
     // DEBUGGER
