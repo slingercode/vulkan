@@ -13,6 +13,7 @@ namespace Engine {
         createGraphicsPipeline();
         createFramebuffers();
         createCommandPool();
+        createCommandBuffer();
         createSyncObjects();
     }
 
