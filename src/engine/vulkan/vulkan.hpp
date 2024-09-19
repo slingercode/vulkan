@@ -45,6 +45,8 @@ namespace Engine {
                 const bool enableValidationLayers = true;
             #endif
 
+            uint32_t currentFrame = 0;
+
             VkExtent2D swapChainExtent;
             VkFormat swapChainImageFormat;
             std::vector<VkImage> swapChainImages;
@@ -58,21 +60,23 @@ namespace Engine {
             VkInstance instance = nullptr;
             VkQueue presentQueue = nullptr;
             VkSurfaceKHR surface = nullptr;
-            VkFence inFlightFence = nullptr;
             VkRenderPass renderPass = nullptr;
             VkSwapchainKHR swapChain = nullptr;
             VkCommandPool commandPool = nullptr;
             VkPipeline graphicsPipeline = nullptr;
-            VkSemaphore renderFinishedSemaphore = nullptr;
-            VkSemaphore imageAvailableSemaphore = nullptr;
             VkPipelineLayout pipelineLayout = nullptr;
             /// @note This object is automatically destroyed when `device (VkInstance)` is destroyed
             VkQueue graphicsQueue = nullptr;
-            /// @note This object is automatically freed when the `commandPool (VkCommandPool)` is destroyed
-            VkCommandBuffer commandBuffer = nullptr;
             /// @note This object is automatically destroyed when `instance (VkDevice)` is destroyed
             VkPhysicalDevice physicalDevice = nullptr;
 
+            std::vector<VkFence> inFlightFences;
+            /// @note This object is automatically freed when the `commandPool (VkCommandPool)` is destroyed
+            std::vector<VkCommandBuffer> commandBuffers;
+            std::vector<VkSemaphore> imageAvailableSemaphores;
+            std::vector<VkSemaphore> renderFinishedSemaphores;
+
+            static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
             static constexpr const char* APP_NAME = "Engine";
             static constexpr const char* ENGINE_NAME = "No Engine";
             static constexpr const char* SHADER_MAIN_FUNCTION = "main";
@@ -143,7 +147,7 @@ namespace Engine {
 
             void createCommandPool();
 
-            void createCommandBuffer();
+            void createCommandBuffers();
 
             void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
 

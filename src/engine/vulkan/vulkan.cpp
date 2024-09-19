@@ -13,21 +13,17 @@ namespace Engine {
         createGraphicsPipeline();
         createFramebuffers();
         createCommandPool();
-        createCommandBuffer();
+        createCommandBuffers();
         createSyncObjects();
     }
 
     Vulkan::~Vulkan() {
-        if (device != nullptr && imageAvailableSemaphore != nullptr) {
-            vkDestroySemaphore(device, imageAvailableSemaphore, nullptr);
-        }
-
-        if (device != nullptr && renderFinishedSemaphore != nullptr) {
-            vkDestroySemaphore(device, renderFinishedSemaphore, nullptr);
-        }
-
-        if (device != nullptr && inFlightFence != nullptr) {
-            vkDestroyFence(device, inFlightFence, nullptr);
+        if (device != nullptr) {
+            for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+                vkDestroySemaphore(device, renderFinishedSemaphores[i], nullptr);
+                vkDestroySemaphore(device, imageAvailableSemaphores[i], nullptr);
+                vkDestroyFence(device, inFlightFences[i], nullptr);
+            }
         }
 
         if (device != nullptr && commandPool != nullptr) {
@@ -80,32 +76,32 @@ namespace Engine {
     }
 
     void Vulkan::drawFrame() {
-        vkWaitForFences(device, 1, &inFlightFence, VK_TRUE, UINT64_MAX);
-        vkResetFences(device, 1, &inFlightFence);
+        vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
+        vkResetFences(device, 1, &inFlightFences[currentFrame]);
 
         uint32_t imageIndex;
-        vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
+        vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
 
-        vkResetCommandBuffer(commandBuffer, 0);
-        recordCommandBuffer(commandBuffer, imageIndex);
+        vkResetCommandBuffer(commandBuffers[currentFrame], 0);
+        recordCommandBuffer(commandBuffers[currentFrame], imageIndex);
 
         VkSubmitInfo submitInfo{};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-        VkSemaphore waitSemaphores[] = {imageAvailableSemaphore};
+        VkSemaphore waitSemaphores[] = {imageAvailableSemaphores[currentFrame]};
         VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
         submitInfo.waitSemaphoreCount = 1;
         submitInfo.pWaitSemaphores = waitSemaphores;
         submitInfo.pWaitDstStageMask = waitStages;
 
         submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &commandBuffer;
+        submitInfo.pCommandBuffers = &commandBuffers[currentFrame];
 
-        VkSemaphore signalSemaphores[] = {renderFinishedSemaphore};
+        VkSemaphore signalSemaphores[] = {renderFinishedSemaphores[currentFrame]};
         submitInfo.signalSemaphoreCount = 1;
         submitInfo.pSignalSemaphores = signalSemaphores;
 
-        VkResult queueSubmitResult = vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFence);
+        VkResult queueSubmitResult = vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFences[currentFrame]);
 
         if (queueSubmitResult != VK_SUCCESS) {
             const std::string msg = "Failed to submit a draw command buffer. [CODE]: " + std::to_string(queueSubmitResult);
@@ -124,6 +120,8 @@ namespace Engine {
         presentInfo.pResults = nullptr;
 
         vkQueuePresentKHR(presentQueue, &presentInfo);
+
+        currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
     }
 
     void Vulkan::waitForDevice() {
@@ -763,14 +761,16 @@ namespace Engine {
         }
     }
 
-    void Vulkan::createCommandBuffer() {
+    void Vulkan::createCommandBuffers() {
+        commandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+
         VkCommandBufferAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
         allocInfo.commandPool = commandPool;
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        allocInfo.commandBufferCount = 1;
+        allocInfo.commandBufferCount = static_cast<uint32_t>(commandBuffers.size());
 
-        VkResult commandBuffersInstanceResult = vkAllocateCommandBuffers(device, &allocInfo, &commandBuffer);
+        VkResult commandBuffersInstanceResult = vkAllocateCommandBuffers(device, &allocInfo, commandBuffers.data());
 
         if (commandBuffersInstanceResult != VK_SUCCESS) {
             const std::string msg = "Failed to create a Vulkan command buffers. [CODE]: " + std::to_string(commandBuffersInstanceResult);
@@ -831,6 +831,10 @@ namespace Engine {
     }
 
     void Vulkan::createSyncObjects() {
+        inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
+        imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+        renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+
         VkSemaphoreCreateInfo semaphoreInfo{};
         semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
@@ -838,26 +842,29 @@ namespace Engine {
         fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
         fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
-        VkResult semaphoreAvailableResult = vkCreateSemaphore(device, &semaphoreInfo, nullptr, &imageAvailableSemaphore);
+        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+            VkResult semaphoreAvailableResult = vkCreateSemaphore(device, &semaphoreInfo, nullptr, &imageAvailableSemaphores[i]);
 
-        if (semaphoreAvailableResult != VK_SUCCESS) {
-            const std::string msg = "Failed to create synchronization objects for a frame. [SEMAPHORE AVAILABLE][CODE]: " + std::to_string(semaphoreAvailableResult);
-            throw std::runtime_error(msg);
+            if (semaphoreAvailableResult != VK_SUCCESS) {
+                const std::string msg = "Failed to create synchronization objects for a frame. [SEMAPHORE AVAILABLE][CODE]: " + std::to_string(semaphoreAvailableResult);
+                throw std::runtime_error(msg);
+            }
+
+            VkResult semaphoreFinishedResult = vkCreateSemaphore(device, &semaphoreInfo, nullptr, &renderFinishedSemaphores[i]);
+
+            if (semaphoreFinishedResult != VK_SUCCESS) {
+                const std::string msg = "Failed to create synchronization objects for a frame. [SEMAPHORE FINISHED][CODE]: " + std::to_string(semaphoreFinishedResult);
+                throw std::runtime_error(msg);
+            }
+
+            VkResult fenceResult = vkCreateFence(device, &fenceInfo, nullptr, &inFlightFences[i]);
+
+            if (fenceResult != VK_SUCCESS) {
+                const std::string msg = "Failed to create synchronization objects for a frame. [FENCE][CODE]: " + std::to_string(fenceResult);
+                throw std::runtime_error(msg);
+            }
         }
 
-        VkResult semaphoreFinishedResult = vkCreateSemaphore(device, &semaphoreInfo, nullptr, &renderFinishedSemaphore);
-
-        if (semaphoreFinishedResult != VK_SUCCESS) {
-            const std::string msg = "Failed to create synchronization objects for a frame. [SEMAPHORE FINISHED][CODE]: " + std::to_string(semaphoreFinishedResult);
-            throw std::runtime_error(msg);
-        }
-
-        VkResult fenceResult = vkCreateFence(device, &fenceInfo, nullptr, &inFlightFence);
-
-        if (fenceResult != VK_SUCCESS) {
-            const std::string msg = "Failed to create synchronization objects for a frame. [FENCE][CODE]: " + std::to_string(fenceResult);
-            throw std::runtime_error(msg);
-        }
     }
 
     // DEBUGGER
