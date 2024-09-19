@@ -56,10 +56,13 @@ namespace Engine {
             VkSurfaceKHR surface = nullptr;
             VkRenderPass renderPass = nullptr;
             VkSwapchainKHR swapChain = nullptr;
+            VkCommandPool commandPool = nullptr;
             VkPipeline graphicsPipeline = nullptr;
             VkPipelineLayout pipelineLayout = nullptr;
             /// @note This object is automatically destroyed when `device (VkInstance)` is destroyed
             VkQueue graphicsQueue = nullptr;
+            /// @note This object is automatically freed when the `commandPool (VkCommandPool)` is destroyed
+            VkCommandBuffer commandBuffer = nullptr;
             /// @note This object is automatically destroyed when `instance (VkDevice)` is destroyed
             VkPhysicalDevice physicalDevice = nullptr;
 
@@ -128,6 +131,12 @@ namespace Engine {
             void createGraphicsPipeline();
 
             void createFramebuffers();
+
+            void createCommandPool();
+
+            void createCommandBuffer();
+
+            void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
 
             // UTILS
 
