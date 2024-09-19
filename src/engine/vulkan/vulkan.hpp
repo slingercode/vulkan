@@ -19,6 +19,10 @@ namespace Engine {
             Vulkan(const Vulkan &) = delete;
             Vulkan &operator=(const Vulkan &) = delete;
 
+            void drawFrame();
+
+            void waitForDevice();
+
         private:
             struct QueueFamilyIndices {
                 std::optional<uint32_t> graphicsFamily;
@@ -54,10 +58,13 @@ namespace Engine {
             VkInstance instance = nullptr;
             VkQueue presentQueue = nullptr;
             VkSurfaceKHR surface = nullptr;
+            VkFence inFlightFence = nullptr;
             VkRenderPass renderPass = nullptr;
             VkSwapchainKHR swapChain = nullptr;
             VkCommandPool commandPool = nullptr;
             VkPipeline graphicsPipeline = nullptr;
+            VkSemaphore renderFinishedSemaphore = nullptr;
+            VkSemaphore imageAvailableSemaphore = nullptr;
             VkPipelineLayout pipelineLayout = nullptr;
             /// @note This object is automatically destroyed when `device (VkInstance)` is destroyed
             VkQueue graphicsQueue = nullptr;
@@ -81,6 +88,8 @@ namespace Engine {
                 "VK_KHR_portability_subset",
                 VK_KHR_SWAPCHAIN_EXTENSION_NAME
             };
+
+            // CONFIGURATION
 
             void createInstance();
 
@@ -137,6 +146,8 @@ namespace Engine {
             void createCommandBuffer();
 
             void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
+
+            void createSyncObjects();
 
             // UTILS
 

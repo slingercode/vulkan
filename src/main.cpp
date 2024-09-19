@@ -4,7 +4,7 @@
 #include <iostream>
 
 static const Engine::Window::Configuration windowConfiguration = {
-    1200,
+    800,
     600,
     "Vulkan"
 };

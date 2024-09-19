@@ -6,6 +6,9 @@ namespace Engine {
     void Application::run() {
         while (!window.shouldClose()) {
             glfwPollEvents();
+            vulkan.drawFrame();
         }
+
+        vulkan.waitForDevice();
     }
 }
