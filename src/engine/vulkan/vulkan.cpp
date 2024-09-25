@@ -45,19 +45,19 @@ namespace Engine {
         }
 
         if (surface != nullptr) {
-            vkDestroySurfaceKHR(instance, surface, nullptr);
+            vkDestroySurfaceKHR(vulkan, surface, nullptr);
         }
 
         if (device != nullptr) {
             vkDestroyDevice(device, nullptr);
         }
 
-        if (enableValidationLayers && instance != nullptr && debugMessenger != nullptr) {
-            destroyDebugUtilsMessenger(instance, debugMessenger, nullptr);
+        if (enableValidationLayers && vulkan != nullptr && debugMessenger != nullptr) {
+            destroyDebugUtilsMessenger(vulkan, debugMessenger, nullptr);
         }
 
-        if (instance != nullptr) {
-            vkDestroyInstance(instance, nullptr);
+        if (vulkan != nullptr) {
+            vkDestroyInstance(vulkan, nullptr);
         }
     }
 
@@ -145,9 +145,9 @@ namespace Engine {
         VkApplicationInfo appInfo = {};
         appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
         appInfo.pApplicationName = APP_NAME;
-        appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
+        appInfo.applicationVersion = VK_MAKE_API_VERSION(0, 1, 0, 0);
         appInfo.pEngineName = ENGINE_NAME;
-        appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
+        appInfo.engineVersion = VK_MAKE_API_VERSION(0, 1, 0, 0);
         appInfo.apiVersion = VK_API_VERSION_1_0;
 
         std::vector<const char*> requiredExtensions = getInstanceRequiredExtensions();
@@ -172,7 +172,7 @@ namespace Engine {
             createInfo.pNext = nullptr;
         }
 
-        const VkResult instanceResult = vkCreateInstance(&createInfo, nullptr, &instance);
+        const VkResult instanceResult = vkCreateInstance(&createInfo, nullptr, &vulkan);
 
         if (instanceResult != VK_SUCCESS) {
             const std::string msg = "Failed to create a Vulkan instance. [CODE]: " + std::to_string(instanceResult);
@@ -190,9 +190,10 @@ namespace Engine {
         for (const char* layerName : validationLayers) {
             bool layerFound = false;
 
-            for (const auto& layerProperties : availableLayers) {
+            for (const VkLayerProperties& layerProperties : availableLayers) {
                 if (strcmp(layerName, layerProperties.layerName) == 0) {
                     layerFound = true;
+
                     break;
                 }
             }
@@ -227,7 +228,7 @@ namespace Engine {
     // SURFACE
 
     void Vulkan::createSurface() {
-        VkResult surfaceInstanceResult = glfwCreateWindowSurface(instance, window->window, nullptr, &surface);
+        VkResult surfaceInstanceResult = glfwCreateWindowSurface(vulkan, window->getInstance(), nullptr, &surface);
 
         if (surfaceInstanceResult != VK_SUCCESS) {
             const std::string msg = "Failed to create a Vulkan surface instance. [CODE]: " + std::to_string(surfaceInstanceResult);
@@ -239,14 +240,14 @@ namespace Engine {
 
     void Vulkan::pickPhysicalDevice() {
         uint32_t deviceCount = 0;
-        vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
+        vkEnumeratePhysicalDevices(vulkan, &deviceCount, nullptr);
 
         if (deviceCount == 0) {
             throw std::runtime_error("Failed to find a GPU with Vulkan support");
         }
 
         std::vector<VkPhysicalDevice> devices(deviceCount);
-        vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
+        vkEnumeratePhysicalDevices(vulkan, &deviceCount, devices.data());
 
         for (const VkPhysicalDevice device : devices) {
             if (isDeviceSuitable(device)) {
@@ -406,7 +407,6 @@ namespace Engine {
         VkSwapchainCreateInfoKHR createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
         createInfo.surface = surface;
-
         createInfo.minImageCount = imageCount;
         createInfo.imageFormat = surfaceFormat.format;
         createInfo.imageColorSpace = surfaceFormat.colorSpace;
@@ -449,10 +449,10 @@ namespace Engine {
     void Vulkan::recreateSwapChain() {
         int width = 0, height = 0;
 
-        glfwGetFramebufferSize(window->window, &width, &height);
+        glfwGetFramebufferSize(window->getInstance(), &width, &height);
 
         while (width == 0 || height == 0) {
-            glfwGetFramebufferSize(window->window, &width, &height);
+            glfwGetFramebufferSize(window->getInstance(), &width, &height);
             glfwWaitEvents();
         }
 
@@ -532,7 +532,7 @@ namespace Engine {
             return capabilities.currentExtent;
         } else {
             int width, height;
-            glfwGetFramebufferSize(window->window, &width, &height);
+            glfwGetFramebufferSize(window->getInstance(), &width, &height);
 
             VkExtent2D actualExtent = {
                 static_cast<uint32_t>(width),
@@ -551,10 +551,8 @@ namespace Engine {
     void Vulkan::createImageViews() {
         swapChainImageViews.resize(swapChainImages.size());
 
-
         for (size_t i = 0; i < swapChainImages.size(); i++) {
             VkImageViewCreateInfo createInfo{};
-
             createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
             createInfo.image = swapChainImages[i];
             createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
@@ -628,8 +626,8 @@ namespace Engine {
     /// @brief The compiled shaders are relative to the `build` folder, so the executable is in build and the
     /// shaders are located at the same level
     void Vulkan::createGraphicsPipeline() {
-        auto vertShaderCode = readFile(BASE_VERTEX_SHADER);
-        auto fragShaderCode = readFile(BASE_FRAGMENT_SHADER);
+        std::vector<char> vertShaderCode = readFile(BASE_VERTEX_SHADER);
+        std::vector<char> fragShaderCode = readFile(BASE_FRAGMENT_SHADER);
 
         VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
         VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);
@@ -749,10 +747,10 @@ namespace Engine {
         pipelineInfo.layout = pipelineLayout;
         pipelineInfo.renderPass = renderPass;
         pipelineInfo.subpass = 0;
-        pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
+        pipelineInfo.basePipelineHandle = nullptr;
         pipelineInfo.basePipelineIndex = -1;
 
-        VkResult pipelineInstanceResult = vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline);
+        VkResult pipelineInstanceResult = vkCreateGraphicsPipelines(device, nullptr, 1, &pipelineInfo, nullptr, &graphicsPipeline);
 
         if (pipelineInstanceResult != VK_SUCCESS) {
             const std::string msg = "Failed to create a Vulkan graphics pipeline. [CODE]: " + std::to_string(pipelineInstanceResult);
@@ -933,7 +931,7 @@ namespace Engine {
         VkDebugUtilsMessengerCreateInfoEXT createInfo;
         populateDebugMessengerCreateInfo(createInfo);
 
-        const VkResult debugInstanceResult = createDebugUtilsMessenger(instance, &createInfo, nullptr, &debugMessenger);
+        const VkResult debugInstanceResult = createDebugUtilsMessenger(vulkan, &createInfo, nullptr, &debugMessenger);
 
         if (debugInstanceResult != VK_SUCCESS) {
             const std::string msg = "Failed to set up debug messenger. [CODE]: " + std::to_string(debugInstanceResult);
@@ -950,7 +948,8 @@ namespace Engine {
     }
 
     VkResult Vulkan::createDebugUtilsMessenger(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) {
-        auto func = (PFN_vkCreateDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
+        PFN_vkCreateDebugUtilsMessengerEXT func = (PFN_vkCreateDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
+
         if (func != nullptr) {
             return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
         } else {
@@ -959,7 +958,8 @@ namespace Engine {
     }
 
     void Vulkan::destroyDebugUtilsMessenger(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator) {
-        auto func = (PFN_vkDestroyDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
+        PFN_vkDestroyDebugUtilsMessengerEXT func = (PFN_vkDestroyDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
+
         if (func != nullptr) {
             func(instance, debugMessenger, pAllocator);
         }

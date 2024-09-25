@@ -57,7 +57,7 @@ namespace Engine {
             Engine::Window* window = nullptr;
 
             VkDevice device = nullptr;
-            VkInstance instance = nullptr;
+            VkInstance vulkan = nullptr;
             VkQueue presentQueue = nullptr;
             VkSurfaceKHR surface = nullptr;
             VkRenderPass renderPass = nullptr;

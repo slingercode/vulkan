@@ -12,12 +12,9 @@ namespace Engine {
             struct Configuration {
                 uint32_t width;
                 uint32_t height;
-                std::string name;
-                
-                Configuration(uint32_t width, uint32_t height, const std::string& name) : width(width), height(height), name(name) {}
+                std::string name;  
             };
 
-            GLFWwindow* window = nullptr;
             Configuration configuration;
 
             Window(Configuration configuration);
@@ -28,11 +25,14 @@ namespace Engine {
 
             bool shouldClose();
 
-            bool getFramebufferResized();
+            GLFWwindow* getInstance() const;
+
+            bool getFramebufferResized() const;
 
             void setFramebufferResized(bool _framebufferResized);
 
         private:
+            GLFWwindow* window = nullptr;
             bool framebufferResized = false;
 
             void init();

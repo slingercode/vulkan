@@ -1,8 +1,5 @@
 #include "application.hpp"
 
-#include <cstdlib>
-#include <iostream>
-
 static const Engine::Window::Configuration windowConfiguration = {
     800,
     600,

@@ -12,6 +12,6 @@ namespace Engine {
 
         private:
             Window window;
-            Vulkan vulkan{&window};
+            Vulkan vulkan;
     };
 }

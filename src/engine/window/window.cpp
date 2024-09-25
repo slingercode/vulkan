@@ -43,7 +43,11 @@ namespace Engine {
         return glfwWindowShouldClose(window);
     }
 
-    bool Window::getFramebufferResized() {
+    GLFWwindow* Window::getInstance() const {
+        return window;
+    }
+
+    bool Window::getFramebufferResized() const {
         return framebufferResized;
     }
 
