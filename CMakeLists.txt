@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD 20)
 
 set(CMAKE_CXX_FLAGS "-Wall -Wextra -pedantic")
 
+set(GLM_PATH "./include/glm/glm")
 set(GLFW_SDK_PATH "/opt/homebrew/Cellar/glfw/3.4")
 set(VULKAN_SDK_PATH "/Users/slingercode/Documents/develop/VulkanSDK/1.3.290.0/macOS")
 
@@ -19,7 +20,7 @@ endforeach()
 
 list(REMOVE_DUPLICATES HEADER_DIR_LIST)
 
-include_directories(${HEADER_DIR_LIST} ${VULKAN_SDK_PATH}/include ${GLFW_SDK_PATH}/include)
+include_directories(${HEADER_DIR_LIST} ${GLM_PATH} ${VULKAN_SDK_PATH}/include ${GLFW_SDK_PATH}/include)
 
 link_directories(${VULKAN_SDK_PATH}/lib ${GLFW_SDK_PATH}/lib)
 
