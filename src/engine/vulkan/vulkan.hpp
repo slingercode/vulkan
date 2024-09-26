@@ -100,11 +100,13 @@ namespace Engine {
             VkInstance vulkan = nullptr;
             VkQueue presentQueue = nullptr;
             VkSurfaceKHR surface = nullptr;
+            VkBuffer vertexBuffer = nullptr;
             VkRenderPass renderPass = nullptr;
             VkSwapchainKHR swapChain = nullptr;
             VkCommandPool commandPool = nullptr;
             VkPipeline graphicsPipeline = nullptr;
             VkPipelineLayout pipelineLayout = nullptr;
+            VkDeviceMemory vertexBufferMemory = nullptr;
             /// @note This object is automatically destroyed when `device (VkInstance)` is destroyed
             VkQueue graphicsQueue = nullptr;
             /// @note This object is automatically destroyed when `instance (VkDevice)` is destroyed
@@ -196,6 +198,12 @@ namespace Engine {
             void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
 
             void createSyncObjects();
+
+            // VERTEX BUFFER
+
+            void createVertexBuffer();
+
+            uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
             // UTILS
 
